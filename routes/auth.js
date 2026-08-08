@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const pool = require('../db/pool');
+const { authLimiter } = require('../middleware/rateLimit');
 
 const router = express.Router();
 
@@ -14,6 +15,7 @@ function signToken(userId) {
 
 router.post(
   '/register',
+  authLimiter,
   [
     body('name').trim().notEmpty().withMessage('Nama wajib diisi'),
     body('email').isEmail().withMessage('Email tidak valid'),
@@ -49,6 +51,7 @@ router.post(
 
 router.post(
   '/login',
+  authLimiter,
   [body('email').isEmail(), body('password').notEmpty()],
   async (req, res) => {
     const errors = validationResult(req);

@@ -5,11 +5,14 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const listingRoutes = require('./routes/listings');
 const adminRoutes = require('./routes/admin');
+const { generalLimiter } = require('./middleware/rateLimit');
 
 const app = express();
 
+app.set('trust proxy', 1);
 app.use(cors({ origin: process.env.FRONTEND_ORIGIN || '*' }));
 app.use(express.json());
+app.use(generalLimiter);
 
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Rumahku API berjalan.' });

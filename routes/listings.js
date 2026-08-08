@@ -4,6 +4,7 @@ const { body, validationResult } = require('express-validator');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { uploadBuffer } = require('../config/cloudinary');
+const { createListingLimiter, uploadLimiter } = require('../middleware/rateLimit');
 
 const router = express.Router();
 const upload = multer({
@@ -96,6 +97,7 @@ router.get('/:id', async (req, res) => {
 router.post(
   '/',
   requireAuth,
+  createListingLimiter,
   [
     body('title').trim().notEmpty(),
     body('tipe').isIn(['jual', 'sewa']),
@@ -125,7 +127,7 @@ router.post(
   }
 );
 
-router.post('/:id/photos', requireAuth, upload.array('photos', 5), async (req, res) => {
+router.post('/:id/photos', requireAuth, uploadLimiter, upload.array('photos', 5), async (req, res) => {
   try {
     const owned = await pool.query('SELECT user_id FROM listings WHERE id = $1', [req.params.id]);
     if (owned.rows.length === 0) return res.status(404).json({ error: 'Listing tidak ditemukan.' });
