@@ -6,6 +6,7 @@ const compression = require('compression');
 const authRoutes = require('./routes/auth');
 const listingRoutes = require('./routes/listings');
 const adminRoutes = require('./routes/admin');
+const messageRoutes = require('./routes/messages');
 const { generalLimiter } = require('./middleware/rateLimit');
 
 const app = express();
@@ -42,6 +43,7 @@ app.get('/health', async (req, res) => {
 app.use('/auth', authRoutes);
 app.use('/listings', listingRoutes);
 app.use('/admin', adminRoutes);
+app.use('/', messageRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint tidak ditemukan.' });

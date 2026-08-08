@@ -32,4 +32,12 @@ const uploadLimiter = rateLimit({
   message: { error: 'Terlalu banyak upload foto dalam waktu singkat. Coba lagi nanti.' }
 });
 
-module.exports = { generalLimiter, createListingLimiter, authLimiter, uploadLimiter };
+const messageLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Terlalu banyak pesan dalam waktu singkat. Tunggu sebentar.' }
+});
+
+module.exports = { generalLimiter, createListingLimiter, authLimiter, uploadLimiter, messageLimiter };
