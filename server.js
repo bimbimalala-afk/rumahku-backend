@@ -7,6 +7,7 @@ const authRoutes = require('./routes/auth');
 const listingRoutes = require('./routes/listings');
 const adminRoutes = require('./routes/admin');
 const messageRoutes = require('./routes/messages');
+const reportRoutes = require('./routes/reports');
 const { generalLimiter } = require('./middleware/rateLimit');
 
 const app = express();
@@ -44,6 +45,7 @@ app.use('/auth', authRoutes);
 app.use('/listings', listingRoutes);
 app.use('/admin', adminRoutes);
 app.use('/', messageRoutes);
+app.use('/', reportRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint tidak ditemukan.' });
