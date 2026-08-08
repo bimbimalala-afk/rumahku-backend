@@ -12,28 +12,6 @@ function signToken(userId) {
   });
 }
 
-// POST /auth/register
-router.post(
-  '/register',
-  [
-    body('name').trim().notEmpty().withMessage('Nama wajib diisi'),
-    body('email').isEmail().withMessage('Email
-cat > routes/auth.js << 'EOF'
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { body, validationResult } = require('express-validator');
-const pool = require('../db/pool');
-
-const router = express.Router();
-
-function signToken(userId) {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
-  });
-}
-
-// POST /auth/register
 router.post(
   '/register',
   [
@@ -69,7 +47,6 @@ router.post(
   }
 );
 
-// POST /auth/login
 router.post(
   '/login',
   [body('email').isEmail(), body('password').notEmpty()],
