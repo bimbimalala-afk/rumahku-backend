@@ -3,6 +3,7 @@ const multer = require('multer');
 const { body, validationResult } = require('express-validator');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
+const { requireSeller } = require('../middleware/seller');
 const { uploadBuffer } = require('../config/cloudinary');
 const { createListingLimiter, uploadLimiter } = require('../middleware/rateLimit');
 const { cacheMiddleware, clearListingsCache } = require('../middleware/cache');
@@ -98,6 +99,7 @@ router.get('/:id', async (req, res) => {
 router.post(
   '/',
   requireAuth,
+  requireSeller,
   createListingLimiter,
   [
     body('title').trim().notEmpty(),
