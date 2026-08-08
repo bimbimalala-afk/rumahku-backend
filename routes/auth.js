@@ -17,6 +17,27 @@ router.post(
   '/register',
   [
     body('name').trim().notEmpty().withMessage('Nama wajib diisi'),
+    body('email').isEmail().withMessage('Email
+cat > routes/auth.js << 'EOF'
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { body, validationResult } = require('express-validator');
+const pool = require('../db/pool');
+
+const router = express.Router();
+
+function signToken(userId) {
+  return jwt.sign({ userId }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+  });
+}
+
+// POST /auth/register
+router.post(
+  '/register',
+  [
+    body('name').trim().notEmpty().withMessage('Nama wajib diisi'),
     body('email').isEmail().withMessage('Email tidak valid'),
     body('password').isLength({ min: 6 }).withMessage('Password minimal 6 karakter'),
     body('whatsapp').trim().notEmpty().withMessage('Nomor WhatsApp wajib diisi')
@@ -34,7 +55,7 @@ router.post(
 
       const passwordHash = await bcrypt.hash(password, 10);
       const result = await pool.query(
-        'INSERT INTO users (name, email, password_hash, whatsapp) VALUES ($1, $2, $3, $4) RETURNING id, name, email, whatsapp',
+        'INSERT INTO users (name, email, password_hash, whatsapp) VALUES ($1, $2, $3, $4) RETURNING id, name, email, whatsapp, is_admin',
         [name, email, passwordHash, whatsapp]
       );
 
@@ -67,7 +88,7 @@ router.post(
 
       const token = signToken(user.id);
       res.json({
-        user: { id: user.id, name: user.name, email: user.email, whatsapp: user.whatsapp },
+        user: { id: user.id, name: user.name, email: user.email, whatsapp: user.whatsapp, is_admin: user.is_admin },
         token
       });
     } catch (err) {
