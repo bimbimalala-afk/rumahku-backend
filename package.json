@@ -9,7 +9,8 @@
     "dev": "nodemon server.js",
     "migrate": "node db/migrate.js",
     "migrate:v2": "node db/migrate_v2.js",
-    "migrate:v3": "node db/migrate_v3.js"
+    "migrate:v3": "node db/migrate_v3.js",
+    "migrate:v4": "node db/migrate_v4.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
