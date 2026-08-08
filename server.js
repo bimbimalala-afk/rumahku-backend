@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 
 const authRoutes = require('./routes/auth');
 const listingRoutes = require('./routes/listings');
@@ -11,11 +12,31 @@ const app = express();
 
 app.set('trust proxy', 1);
 app.use(cors({ origin: process.env.FRONTEND_ORIGIN || '*' }));
+app.use(compression());
 app.use(express.json());
 app.use(generalLimiter);
 
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const ms = Date.now() - start;
+    console.log(`${req.method} ${req.originalUrl} -> ${res.statusCode} (${ms}ms)`);
+  });
+  next();
+});
+
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Rumahku API berjalan.' });
+});
+
+app.get('/health', async (req, res) => {
+  const pool = require('./db/pool');
+  try {
+    await pool.query('SELECT 1');
+    res.json({ status: 'ok', database: 'connected' });
+  } catch (err) {
+    res.status(503).json({ status: 'error', database: 'disconnected' });
+  }
 });
 
 app.use('/auth', authRoutes);

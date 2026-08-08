@@ -5,6 +5,7 @@ const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { uploadBuffer } = require('../config/cloudinary');
 const { createListingLimiter, uploadLimiter } = require('../middleware/rateLimit');
+const { cacheMiddleware, clearListingsCache } = require('../middleware/cache');
 
 const router = express.Router();
 const upload = multer({
@@ -31,7 +32,7 @@ async function attachPhotos(listings) {
   return listings.map((l) => ({ ...l, photos: byListing[l.id] || [] }));
 }
 
-router.get('/', async (req, res) => {
+router.get('/', cacheMiddleware(20), async (req, res) => {
   const { tipe, kota, min_harga, max_harga, page = 1, limit = 12 } = req.query;
   const conditions = ["status = 'aktif'"];
   const values = [];
@@ -202,6 +203,7 @@ router.put('/:id', requireAuth, async (req, res) => {
       `UPDATE listings SET ${updates.join(', ')}, updated_at = now() WHERE id = $${values.length} RETURNING *`,
       values
     );
+    clearListingsCache();
     res.json({ listing: result.rows[0] });
   } catch (err) {
     console.error(err);
@@ -216,6 +218,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
     if (owned.rows[0].user_id !== req.userId) return res.status(403).json({ error: 'Bukan pemilik listing ini.' });
 
     await pool.query('DELETE FROM listings WHERE id = $1', [req.params.id]);
+    clearListingsCache();
     res.json({ message: 'Listing berhasil dihapus.' });
   } catch (err) {
     console.error(err);

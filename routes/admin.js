@@ -2,12 +2,12 @@ const express = require('express');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/admin');
+const { clearListingsCache } = require('../middleware/cache');
 
 const router = express.Router();
 
 router.use(requireAuth, requireAdmin);
 
-// GET /admin/listings?status=pending_review
 router.get('/listings', async (req, res) => {
   const status = req.query.status || 'pending_review';
   try {
@@ -35,7 +35,6 @@ router.get('/listings', async (req, res) => {
   }
 });
 
-// POST /admin/listings/:id/approve
 router.post('/listings/:id/approve', async (req, res) => {
   try {
     const result = await pool.query(
@@ -43,6 +42,7 @@ router.post('/listings/:id/approve', async (req, res) => {
       [req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Listing tidak ditemukan.' });
+    clearListingsCache();
     res.json({ listing: result.rows[0] });
   } catch (err) {
     console.error(err);
@@ -50,7 +50,6 @@ router.post('/listings/:id/approve', async (req, res) => {
   }
 });
 
-// POST /admin/listings/:id/reject  { alasan: '...' }
 router.post('/listings/:id/reject', async (req, res) => {
   try {
     const result = await pool.query(
@@ -58,6 +57,7 @@ router.post('/listings/:id/reject', async (req, res) => {
       [req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Listing tidak ditemukan.' });
+    clearListingsCache();
     res.json({ listing: result.rows[0] });
   } catch (err) {
     console.error(err);
