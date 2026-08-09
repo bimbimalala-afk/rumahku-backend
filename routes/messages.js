@@ -2,12 +2,14 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
+const { requireVerifiedEmail } = require('../middleware/verified');
 
 const router = express.Router();
 router.use(requireAuth);
 
 router.post(
   '/conversations',
+  requireVerifiedEmail,
   [body('listing_id').isInt()],
   async (req, res) => {
     const errors = validationResult(req);
@@ -101,6 +103,7 @@ router.get('/conversations/:id/messages', async (req, res) => {
 
 router.post(
   '/conversations/:id/messages',
+  requireVerifiedEmail,
   require('../middleware/rateLimit').messageLimiter,
   [body('content').trim().notEmpty().isLength({ max: 2000 })],
   async (req, res) => {

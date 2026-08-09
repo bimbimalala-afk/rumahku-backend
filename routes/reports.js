@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/admin');
+const { requireVerifiedEmail } = require('../middleware/verified');
 
 const router = express.Router();
 
@@ -11,6 +12,7 @@ const VALID_REASONS = ['harga_tidak_wajar', 'foto_palsu', 'penjual_tidak_respons
 router.post(
   '/listings/:id/report',
   requireAuth,
+  requireVerifiedEmail,
   [
     body('reason').isIn(VALID_REASONS).withMessage('Alasan laporan tidak valid.'),
     body('detail').optional().trim().isLength({ max: 500 })

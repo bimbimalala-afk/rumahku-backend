@@ -40,4 +40,12 @@ const messageLimiter = rateLimit({
   message: { error: 'Terlalu banyak pesan dalam waktu singkat. Tunggu sebentar.' }
 });
 
-module.exports = { generalLimiter, createListingLimiter, authLimiter, uploadLimiter, messageLimiter };
+const verifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Terlalu banyak percobaan verifikasi. Coba lagi dalam beberapa menit.' }
+});
+
+module.exports = { generalLimiter, createListingLimiter, authLimiter, uploadLimiter, messageLimiter, verifyLimiter };

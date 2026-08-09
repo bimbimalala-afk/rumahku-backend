@@ -4,6 +4,7 @@ const { body, validationResult } = require('express-validator');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { requireSeller } = require('../middleware/seller');
+const { requireVerifiedAccount } = require('../middleware/verified');
 const { uploadBuffer } = require('../config/cloudinary');
 const { createListingLimiter, uploadLimiter } = require('../middleware/rateLimit');
 const { cacheMiddleware, clearListingsCache } = require('../middleware/cache');
@@ -100,6 +101,7 @@ router.post(
   '/',
   requireAuth,
   requireSeller,
+  requireVerifiedAccount,
   createListingLimiter,
   [
     body('title').trim().notEmpty(),

@@ -80,4 +80,33 @@ router.post('/listings/:id/deactivate', async (req, res) => {
   }
 });
 
+router.get('/wa-verifications', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, name, email, whatsapp, wa_verify_code
+       FROM users
+       WHERE wa_verify_code IS NOT NULL AND wa_verified = false
+       ORDER BY id ASC`
+    );
+    res.json({ users: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Gagal mengambil daftar verifikasi WhatsApp.' });
+  }
+});
+
+router.post('/users/:id/verify-wa', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `UPDATE users SET wa_verified = true, wa_verify_code = NULL WHERE id = $1 RETURNING id, name, wa_verified`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Pengguna tidak ditemukan.' });
+    res.json({ user: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Gagal menandai verifikasi WhatsApp.' });
+  }
+});
+
 module.exports = router;
