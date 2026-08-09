@@ -13,7 +13,20 @@ const { generalLimiter } = require('./middleware/rateLimit');
 const app = express();
 
 app.set('trust proxy', 1);
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN || '*' }));
+const allowedOrigins = (process.env.FRONTEND_ORIGIN || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Ditolak oleh kebijakan CORS.'));
+  }
+}));
 app.use(compression());
 app.use(express.json());
 app.use(generalLimiter);
