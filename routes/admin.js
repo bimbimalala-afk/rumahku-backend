@@ -65,4 +65,19 @@ router.post('/listings/:id/reject', async (req, res) => {
   }
 });
 
+router.post('/listings/:id/deactivate', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `UPDATE listings SET status = 'nonaktif', updated_at = now() WHERE id = $1 RETURNING *`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Listing tidak ditemukan.' });
+    clearListingsCache();
+    res.json({ listing: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Gagal menonaktifkan listing.' });
+  }
+});
+
 module.exports = router;
