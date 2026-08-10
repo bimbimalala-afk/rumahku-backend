@@ -43,7 +43,7 @@ router.post(
 
     try {
       const result = await pool.query(
-        `INSERT INTO listings (user_id, title, tipe, kota, area, harga, unit, luas_tanah, kamar_tidur, kamar_mandi, diskripsi, status)
+        `INSERT INTO listings (user_id, title, tipe, kota, area, harga, unit, luas_tanah, kamar_tidur, kamar_mandi, deskripsi, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
         [req.userId, req.body.title, req.body.tipe, req.body.kota, req.body.area, req.body.harga,
          req.body.unit, req.body.luas_tanah, req.body.kamar_tidur, req.body.kamar_mandi,
@@ -89,7 +89,7 @@ router.put(
       const result = await pool.query(
         `UPDATE listings
          SET title = $1, tipe = $2, kota = $3, area = $4, harga = $5, unit = $6,
-             luas_tanah = $7, kamar_tidur = $8, kamar_mandi = $9, diskripsi = $10,
+             luas_tanah = $7, kamar_tidur = $8, kamar_mandi = $9, deskripsi = $10,
              status = 'pending_review', updated_at = now()
          WHERE id = $11 AND user_id = $12 RETURNING *`,
         [req.body.title, req.body.tipe, req.body.kota, req.body.area, req.body.harga, req.body.unit,
