@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
+const { uploadBuffer } = require('../config/cloudinary');
 
 const router = express.Router();
 
@@ -23,7 +24,8 @@ router.post(
     if (!errors.isEmpty()) return res.status(400).json({ error: 'Data tidak lengkap' });
 
     try {
-      const imageUrls = req.files.map(f => f.path);
+      const uploaded = await Promise.all(req.files.map(f => uploadBuffer(f.buffer)));
+      const imageUrls = uploaded.map(u => u.secure_url);
       const newStatus = 'draft';
       const result = await pool.query(
         `INSERT INTO listings (user_id, title, description, harga, unit, lokasi, images, status)
@@ -64,7 +66,7 @@ router.put(
       if (listing.rows.length === 0) return res.status(404).json({ error: 'Listing tidak ditemukan' });
       if (listing.rows[0].user_id !== req.userId) return res.status(403).json({ error: 'Bukan listing kamu' });
 
-      const imageUrls = req.files.length > 0 ? req.files.map(f => f.path) : req.body.existingImages;
+      const imageUrls = req.files.length > 0 ? (await Promise.all(req.files.map(f => uploadBuffer(f.buffer)))).map(u => u.secure_url) : req.body.existingImages;
       const updateStatus = 'active';
       
       const result = await pool.query(
