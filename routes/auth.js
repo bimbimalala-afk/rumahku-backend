@@ -45,6 +45,26 @@ async function sendVerificationEmail(user) {
   );
 }
 
+async function sendResetPasswordEmail(user) {
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const tokenHash = hashToken(rawToken);
+  const expires = new Date(Date.now() + 60 * 60 * 1000);
+  await pool.query(
+    'UPDATE users SET reset_token_hash = $1, reset_token_expires = $2 WHERE id = $3',
+    [tokenHash, expires, user.id]
+  );
+  const link = `${frontendUrl()}/#reset-password/${rawToken}`;
+  await sendEmail(
+    user.email,
+    'Reset password Rumahku kamu',
+    `<p>Halo ${user.name},</p>
+     <p>Kami menerima permintaan untuk mengatur ulang password akun Rumahku kamu. Klik tombol di bawah untuk membuat password baru:</p>
+     <p><a href="${link}" style="background:#8C3A17;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;display:inline-block;">Atur Ulang Password</a></p>
+     <p>Atau salin tautan ini ke browser: ${link}</p>
+     <p style="color:#888;font-size:12px;">Tautan berlaku 1 jam. Kalau kamu tidak meminta reset password, abaikan email ini — password kamu tetap aman.</p>`
+  );
+}
+
 router.post(
   '/register',
   authLimiter,
@@ -198,5 +218,58 @@ router.post('/send-wa-code', requireAuth, verifyLimiter, async (req, res) => {
     res.status(500).json({ error: 'Gagal membuat kode verifikasi WhatsApp.' });
   }
 });
+
+router.post('/forgot-password', verifyLimiter, [body('email').isEmail().withMessage('Email tidak valid')], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
+
+  const genericMessage = 'Kalau email itu terdaftar, tautan reset password sudah dikirim. Cek inbox atau folder spam.';
+  try {
+    const result = await pool.query('SELECT id, name, email FROM users WHERE email = $1', [req.body.email]);
+    const user = result.rows[0];
+    if (user) {
+      await sendResetPasswordEmail(user);
+    }
+    res.json({ message: genericMessage });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Gagal memproses permintaan reset password.' });
+  }
+});
+
+router.post(
+  '/reset-password',
+  verifyLimiter,
+  [
+    body('token').notEmpty().withMessage('Token tidak valid.'),
+    body('password').isLength({ min: 6 }).withMessage('Password minimal 6 karakter.')
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
+
+    try {
+      const tokenHash = hashToken(req.body.token);
+      const result = await pool.query(
+        'SELECT id, reset_token_expires FROM users WHERE reset_token_hash = $1',
+        [tokenHash]
+      );
+      const user = result.rows[0];
+      if (!user || !user.reset_token_expires || new Date(user.reset_token_expires) < new Date()) {
+        return res.status(400).json({ error: 'Tautan reset password tidak valid atau sudah kedaluwarsa.' });
+      }
+
+      const passwordHash = await bcrypt.hash(req.body.password, 10);
+      await pool.query(
+        'UPDATE users SET password_hash = $1, reset_token_hash = NULL, reset_token_expires = NULL WHERE id = $2',
+        [passwordHash, user.id]
+      );
+      res.json({ message: 'Password berhasil diganti. Silakan masuk dengan password baru kamu.' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Gagal mengatur ulang password.' });
+    }
+  }
+);
 
 module.exports = router;

@@ -1,31 +1,17 @@
+const fs = require('fs');
+const path = require('path');
 const pool = require('./pool');
 
 async function migrate() {
-  const client = await pool.connect();
+  const sql = fs.readFileSync(path.join(__dirname, 'migrate_v8.sql'), 'utf8');
   try {
-    await client.query('BEGIN');
-
-    await client.query(`
-      ALTER TABLE listings
-      ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active',
-      ADD COLUMN IF NOT EXISTS rejection_reason TEXT
-    `);
-
-    await client.query(`
-      UPDATE listings SET status = 'active' WHERE status IS NULL
-    `);
-
-    await client.query(`
-      CREATE INDEX IF NOT EXISTS idx_listings_status ON listings(status)
-    `);
-
-    await client.query('COMMIT');
-    console.log('✅ Migration v8 berhasil');
+    await pool.query(sql);
+    console.log('Migrasi v8 berhasil — kolom reset password siap.');
   } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('❌ Error:', err);
+    console.error('Migrasi v8 gagal:', err.message);
+    process.exit(1);
   } finally {
-    client.release();
+    await pool.end();
   }
 }
 
