@@ -8,6 +8,7 @@ const listingRoutes = require('./routes/listings');
 const adminRoutes = require('./routes/admin');
 const messageRoutes = require('./routes/messages');
 const reportRoutes = require('./routes/reports');
+const pushRoutes = require('./routes/push');
 const { generalLimiter } = require('./middleware/rateLimit');
 
 const app = express();
@@ -29,7 +30,6 @@ app.use(cors({
 }));
 app.use(compression());
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
 app.use(generalLimiter);
 
 app.use((req, res, next) => {
@@ -60,6 +60,7 @@ app.use('/listings', listingRoutes);
 app.use('/admin', adminRoutes);
 app.use('/', messageRoutes);
 app.use('/', reportRoutes);
+app.use('/', pushRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint tidak ditemukan.' });

@@ -28,4 +28,9 @@ async function sendEmail(to, subject, html) {
   }
 }
 
-module.exports = { sendEmail };
+function frontendUrl() {
+  const origins = (process.env.FRONTEND_ORIGIN || '').split(',').map((o) => o.trim()).filter(Boolean);
+  return origins[0] || 'https://rumah-ku.netlify.app';
+}
+
+module.exports = { sendEmail, frontendUrl };

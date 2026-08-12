@@ -3,9 +3,45 @@ const { body, validationResult } = require('express-validator');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { requireVerifiedEmail } = require('../middleware/verified');
+const { sendEmail, frontendUrl } = require('../config/email');
+const { sendPushToUser } = require('../config/push');
 
 const router = express.Router();
 router.use(requireAuth);
+
+async function notifyNewMessage(convo, senderId, content){
+  try{
+    const recipientId = convo.buyer_id === senderId ? convo.seller_id : convo.buyer_id;
+    const result = await pool.query(
+      `SELECT recipient.name AS recipient_name, recipient.email AS recipient_email,
+              sender.name AS sender_name, l.title AS listing_title
+       FROM users recipient, users sender, listings l
+       WHERE recipient.id = $1 AND sender.id = $2 AND l.id = $3`,
+      [recipientId, senderId, convo.listing_id]
+    );
+    const row = result.rows[0];
+    if(!row) return;
+    const preview = content.length > 140 ? content.slice(0, 140) + '…' : content;
+
+    await sendEmail(
+      row.recipient_email,
+      `Pesan baru dari ${row.sender_name} di Rumahku`,
+      `<p>Halo ${row.recipient_name},</p>
+       <p><strong>${row.sender_name}</strong> mengirim pesan baru terkait listing <strong>${row.listing_title}</strong>:</p>
+       <blockquote style="border-left:3px solid #8C3A17;padding-left:12px;color:#444;white-space:pre-line;margin:12px 0;">${preview}</blockquote>
+       <p><a href="${frontendUrl()}" style="background:#8C3A17;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;display:inline-block;">Buka Rumahku</a></p>
+       <p style="color:#888;font-size:12px;">Buka menu "Pesan" di Rumahku untuk membalas.</p>`
+    );
+
+    await sendPushToUser(recipientId, {
+      title: `Pesan baru dari ${row.sender_name}`,
+      body: preview,
+      url: frontendUrl()
+    });
+  }catch(err){
+    console.error('Gagal mengirim notifikasi pesan baru:', err.message);
+  }
+}
 
 router.post(
   '/conversations',
@@ -120,6 +156,8 @@ router.post(
         [req.params.id, req.userId, req.body.content.trim()]
       );
       await pool.query('UPDATE conversations SET updated_at = now() WHERE id = $1', [req.params.id]);
+
+      notifyNewMessage(convo, req.userId, req.body.content.trim());
 
       res.status(201).json({ message: saved.rows[0] });
     } catch (err) {

@@ -3,10 +3,55 @@ const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/admin');
 const { clearListingsCache } = require('../middleware/cache');
+const { sendEmail, frontendUrl } = require('../config/email');
+const { sendPushToUser } = require('../config/push');
 
 const router = express.Router();
 
 router.use(requireAuth, requireAdmin);
+
+async function notifyListingDecision(listingId, approved){
+  try{
+    const result = await pool.query(
+      `SELECT l.title, u.id AS owner_id, u.name AS owner_name, u.email AS owner_email
+       FROM listings l JOIN users u ON u.id = l.user_id
+       WHERE l.id = $1`,
+      [listingId]
+    );
+    const row = result.rows[0];
+    if(!row) return;
+
+    if(approved){
+      await sendEmail(
+        row.owner_email,
+        `Iklan "${row.title}" sudah disetujui`,
+        `<p>Halo ${row.owner_name},</p>
+         <p>Kabar baik! Iklan kamu <strong>${row.title}</strong> sudah disetujui dan sekarang tayang di Rumahku.</p>
+         <p><a href="${frontendUrl()}/#rumah/${listingId}" style="background:#3C6E4C;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;display:inline-block;">Lihat Iklan</a></p>`
+      );
+      await sendPushToUser(row.owner_id, {
+        title: 'Iklan kamu disetujui ✅',
+        body: `"${row.title}" sekarang tayang di Rumahku.`,
+        url: `${frontendUrl()}/#rumah/${listingId}`
+      });
+    }else{
+      await sendEmail(
+        row.owner_email,
+        `Iklan "${row.title}" belum bisa disetujui`,
+        `<p>Halo ${row.owner_name},</p>
+         <p>Iklan kamu <strong>${row.title}</strong> belum bisa disetujui oleh tim kami saat ini. Kamu bisa periksa dan perbarui detailnya lewat menu "Iklan Saya" di Rumahku, lalu ajukan lagi.</p>
+         <p><a href="${frontendUrl()}" style="background:#8C3A17;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;display:inline-block;">Buka Rumahku</a></p>`
+      );
+      await sendPushToUser(row.owner_id, {
+        title: 'Iklan kamu belum disetujui',
+        body: `"${row.title}" perlu diperbarui. Cek menu Iklan Saya.`,
+        url: frontendUrl()
+      });
+    }
+  }catch(err){
+    console.error('Gagal mengirim notifikasi keputusan listing:', err.message);
+  }
+}
 
 router.get('/listings', async (req, res) => {
   const status = req.query.status || 'pending_review';
@@ -43,6 +88,7 @@ router.post('/listings/:id/approve', async (req, res) => {
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Listing tidak ditemukan.' });
     clearListingsCache();
+    notifyListingDecision(req.params.id, true);
     res.json({ listing: result.rows[0] });
   } catch (err) {
     console.error(err);
@@ -58,6 +104,7 @@ router.post('/listings/:id/reject', async (req, res) => {
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Listing tidak ditemukan.' });
     clearListingsCache();
+    notifyListingDecision(req.params.id, false);
     res.json({ listing: result.rows[0] });
   } catch (err) {
     console.error(err);
