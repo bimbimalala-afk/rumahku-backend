@@ -15,7 +15,8 @@
     "migrate:v6": "node db/migrate_v6.js",
     "migrate:v7": "node db/migrate_v7.js",
     "migrate:v8": "node db/migrate_v8.js",
-    "migrate:v9": "node db/migrate_v9.js"
+    "migrate:v9": "node db/migrate_v9.js",
+    "migrate:v10": "node db/migrate_v10.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
