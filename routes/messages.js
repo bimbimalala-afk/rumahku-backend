@@ -130,6 +130,11 @@ router.get('/conversations/:id/messages', async (req, res) => {
       [req.params.id, req.userId]
     );
 
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`conversation:${req.params.id}`).emit('messages_read', { conversationId: parseInt(req.params.id), readerId: req.userId });
+    }
+
     res.json({ messages: messages.rows });
   } catch (err) {
     console.error(err);
@@ -156,6 +161,13 @@ router.post(
         [req.params.id, req.userId, req.body.content.trim()]
       );
       await pool.query('UPDATE conversations SET updated_at = now() WHERE id = $1', [req.params.id]);
+
+      const recipientId = convo.buyer_id === req.userId ? convo.seller_id : convo.buyer_id;
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`conversation:${req.params.id}`).emit('new_message', saved.rows[0]);
+        io.to(`user:${recipientId}`).emit('unread_update');
+      }
 
       notifyNewMessage(convo, req.userId, req.body.content.trim());
 
