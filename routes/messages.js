@@ -7,7 +7,6 @@ const { sendEmail, frontendUrl } = require('../config/email');
 const { sendPushToUser } = require('../config/push');
 
 const router = express.Router();
-router.use(requireAuth);
 
 async function notifyNewMessage(convo, senderId, content){
   try{
@@ -45,6 +44,7 @@ async function notifyNewMessage(convo, senderId, content){
 
 router.post(
   '/conversations',
+  requireAuth,
   requireVerifiedEmail,
   [body('listing_id').isInt()],
   async (req, res) => {
@@ -80,7 +80,7 @@ router.post(
   }
 );
 
-router.get('/conversations', async (req, res) => {
+router.get('/conversations', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT c.*, l.title AS listing_title, l.harga, l.unit,
@@ -114,7 +114,7 @@ async function assertParticipant(conversationId, userId) {
   return convo;
 }
 
-router.get('/conversations/:id/messages', async (req, res) => {
+router.get('/conversations/:id/messages', requireAuth, async (req, res) => {
   try {
     const convo = await assertParticipant(req.params.id, req.userId);
     if (convo === null) return res.status(404).json({ error: 'Percakapan tidak ditemukan.' });
@@ -144,6 +144,7 @@ router.get('/conversations/:id/messages', async (req, res) => {
 
 router.post(
   '/conversations/:id/messages',
+  requireAuth,
   requireVerifiedEmail,
   require('../middleware/rateLimit').messageLimiter,
   [body('content').trim().notEmpty().isLength({ max: 2000 })],
