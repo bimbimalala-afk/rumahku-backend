@@ -12,6 +12,7 @@ const adminRoutes = require('./routes/admin');
 const messageRoutes = require('./routes/messages');
 const reportRoutes = require('./routes/reports');
 const pushRoutes = require('./routes/push');
+const sitemapRoutes = require('./routes/sitemap');
 const { generalLimiter } = require('./middleware/rateLimit');
 const pool = require('./db/pool');
 
@@ -64,6 +65,7 @@ app.use('/admin', adminRoutes);
 app.use('/', messageRoutes);
 app.use('/', reportRoutes);
 app.use('/', pushRoutes);
+app.use('/', sitemapRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint tidak ditemukan.' });
