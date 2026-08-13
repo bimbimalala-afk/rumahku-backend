@@ -28,7 +28,13 @@ async function sendEmail(to, subject, html) {
   }
 }
 
+// Domain utama (branded) untuk tautan di email, sitemap, dll — bukan sekadar
+// origin CORS pertama. Diatur lewat PRIMARY_DOMAIN di Railway Variables,
+// dengan fallback ke origin pertama di FRONTEND_ORIGIN kalau belum diatur.
 function frontendUrl() {
+  if (process.env.PRIMARY_DOMAIN) {
+    return process.env.PRIMARY_DOMAIN.trim().replace(/\/+$/, '');
+  }
   const origins = (process.env.FRONTEND_ORIGIN || '').split(',').map((o) => o.trim()).filter(Boolean);
   return origins[0] || 'https://rumah-ku.netlify.app';
 }
